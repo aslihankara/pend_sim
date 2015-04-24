@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
    else
       RND_SEED = 0;
 
+   init_controller();
    reset_state(&x, &x_dot, &theta, &theta_dot);
 
    /*--- Iterate through the action-learn loop. ---*/
