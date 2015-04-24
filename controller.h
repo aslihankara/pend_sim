@@ -6,5 +6,6 @@ int get_action(float x, float x_dot,
 
 void reset_controller(void);
 void init_controller(void);
+int write_states(char *filename);
 
 #endif

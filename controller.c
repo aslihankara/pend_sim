@@ -3,11 +3,11 @@
 #include "controller.h"
 
 
-#define MAX_ANGLE 12
+#define MAX_ANGLE 12.0
 #define MAX_POSITION 2.4
 
-#define NUM_ANGLES 1000
-#define NUM_POSITIONS 1000
+#define NUM_ANGLES 100
+#define NUM_POSITIONS 100
 #define NUM_ACTIONS 2
 
 
@@ -20,14 +20,14 @@
 #define PI 3.14159265359
 
 
-float q_values[NUM_ANGLES][NUM_POSITIONS][NUM_ACTIONS] = {{{0.0}}};
+float q_values[(int)(NUM_ANGLES*MAX_ANGLE*2)][(int)(NUM_POSITIONS*MAX_POSITION*2)][NUM_ACTIONS] = {{{0.0}}};
 
-float angle_div = (float)MAX_ANGLE/NUM_ANGLES;
-float pos_div = (float)MAX_POSITION/NUM_POSITIONS;
+float angle_div = 1.0/NUM_ANGLES;
+float pos_div = 1.0/NUM_POSITIONS;
 
 int epsilon = EPSILON * 100;
-int gamma = GAMMA;
-int alpha = ALPHA;
+float gamma = GAMMA;
+float alpha = ALPHA;
 
 int prev_action, prev_x, prev_theta;
 
@@ -44,13 +44,17 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 
 	theta = theta * 180.0/PI;
 
-	x_index = (int) ((x/pos_div+0.5));
-	theta_index = (int) ((theta/angle_div)+0.5);
+	x_index = (int) (((x+MAX_POSITION/2)/pos_div)+0.5);
+	theta_index = (int) (((theta+MAX_ANGLE/2)/angle_div)+0.5);
 
 
+	if(reinforcement != 0)
+	{
+	//	fprintf(stderr, "state, x: %lf theta %lf\n", x, theta);
+	//	fprintf(stderr, "indexes, x: %d theta %d\n\n", x_index, theta_index);
+	//	getchar();
+	}
 
-	fprintf(stderr, "state, x: %lf theta %lf\n", x, theta);
-	fprintf(stderr, "indexes, x: %d theta %d\n\n", x_index, theta_index);
 	
 	if(x_index < 0 || theta_index < 0)
 	{
@@ -123,12 +127,36 @@ int read_states(char *filename)
 
 int write_states(char *filename) 
 {
-	//int theta, x, state;
+	int theta, x, action;
+	char *default_filename = "log";
+	FILE *fh;
 
+	if(filename == 0)
+	{
+		filename = default_filename;
+	}
 
-	//for (theta = 
+	fh = fopen(filename, "w");
+	
+	printf("writing states to \'%s\'...", filename);
+	fflush(stdout);
 
+	for (theta = 0; theta < (int)(NUM_ANGLES*MAX_ANGLE*2); ++theta)
+	{
+		for(x = 0; x <  (int)(NUM_POSITIONS*MAX_POSITION*2); ++x)
+		{
+			for(action=0; action < NUM_ACTIONS; ++action)
+			{
+				fprintf(fh, "theta: %d\tpos: %d\taction: %d\tvalue: %lf\n",
+						theta, x, action, q_values[theta][x][action]);
 
+			}
+		}
+	}
+
+	printf("done!\n");
+
+	fclose(fh);
 
 	return 0;
 }

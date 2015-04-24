@@ -6,7 +6,7 @@
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 0                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    3000       /* Termination criterion */
+#define MAX_FAILURES    30000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
 
 
@@ -103,6 +103,8 @@ int main(int argc, char *argv[])
    else
     printf("Pole balanced successfully for at least %d steps in trial %d.\n\n",
             steps - 1, failures + 1);
+
+   write_states(0);
 
 /* print_controller_info();*/
    if (echo_file != NULL)
