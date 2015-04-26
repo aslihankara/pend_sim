@@ -6,7 +6,7 @@
 #define MAX_ANGLE 12.0
 #define MAX_POSITION 2.4
 
-#define NUM_ANGLES 100
+#define NUM_ANGLES 1000
 #define NUM_POSITIONS 100
 #define NUM_ACTIONS 2
 
@@ -22,6 +22,7 @@
 
 float q_values[(int)(NUM_ANGLES*MAX_ANGLE*2)][(int)(NUM_POSITIONS*MAX_POSITION*2)][NUM_ACTIONS] = {{{0.0}}};
 
+float max_w=0, max_v=0;
 float angle_div = 1.0/NUM_ANGLES;
 float pos_div = 1.0/NUM_POSITIONS;
 
@@ -43,6 +44,12 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	int current_value;
 
 	theta = theta * 180.0/PI;
+	theta_dot = theta_dot * 180.0/PI;
+
+	if(fabs(theta_dot) > max_w)
+		max_w = fabs(theta_dot); 
+	if(fabs(x_dot) > max_v)
+		max_v = fabs(x_dot); 
 
 	x_index = (int) (((x+MAX_POSITION/2)/pos_div)+0.5);
 	theta_index = (int) (((theta+MAX_ANGLE/2)/angle_div)+0.5);
@@ -128,7 +135,7 @@ int read_states(char *filename)
 int write_states(char *filename) 
 {
 	int theta, x, action;
-	char *default_filename = "log";
+	char *default_filename = "tmp/log";
 	FILE *fh;
 
 	if(filename == 0)
@@ -137,8 +144,10 @@ int write_states(char *filename)
 	}
 
 	fh = fopen(filename, "w");
-	
+
+	printf("max w: %lf\tmax v: %lf\n", max_w, max_v);	
 	printf("writing states to \'%s\'...", filename);
+
 	fflush(stdout);
 
 	for (theta = 0; theta < (int)(NUM_ANGLES*MAX_ANGLE*2); ++theta)
