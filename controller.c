@@ -6,13 +6,13 @@
 #define MAX_ANGLE 12.0
 #define MAX_POSITION 2.4
 
-#define NUM_ANGLES 1000
-#define NUM_POSITIONS 100
+#define NUM_ANGLES 1
+#define NUM_POSITIONS 1
 #define NUM_ACTIONS 2
 
 
 #define EPSILON .01
-#define GAMMA .02
+#define GAMMA .2
 #define ALPHA .4
 
 #define NUM_STATES (NUM_ANGLES * NUM_POSITIONS * NUM_ACTIONS)
@@ -135,7 +135,7 @@ int read_states(char *filename)
 int write_states(char *filename) 
 {
 	int theta, x, action;
-	char *default_filename = "tmp/log";
+	char *default_filename = "log/log";
 	FILE *fh;
 
 	if(filename == 0)
@@ -144,11 +144,18 @@ int write_states(char *filename)
 	}
 
 	fh = fopen(filename, "w");
+	if(fh < 0)
+	{
+		printf("could not open\'%s\' for writing!\n", filename);
+		return 1;
+	}
 
 	printf("max w: %lf\tmax v: %lf\n", max_w, max_v);	
 	printf("writing states to \'%s\'...", filename);
 
 	fflush(stdout);
+	
+	fprintf(fh, "theta: pos: action:  value:\n");
 
 	for (theta = 0; theta < (int)(NUM_ANGLES*MAX_ANGLE*2); ++theta)
 	{
@@ -156,7 +163,7 @@ int write_states(char *filename)
 		{
 			for(action=0; action < NUM_ACTIONS; ++action)
 			{
-				fprintf(fh, "theta: %d\tpos: %d\taction: %d\tvalue: %lf\n",
+				fprintf(fh, "%d %d %d %lf\n",
 						theta, x, action, q_values[theta][x][action]);
 
 			}
