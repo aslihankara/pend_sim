@@ -6,7 +6,7 @@
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 0                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    3000000       /* Termination criterion */
+#define MAX_FAILURES    30000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
 
 
@@ -63,6 +63,8 @@ int main(int argc, char *argv[])
       RND_SEED = 0;
 
    init_controller();
+   reset_controller();
+   read_states(0);
    reset_state(&x, &x_dot, &theta, &theta_dot);
 
    /*--- Iterate through the action-learn loop. ---*/

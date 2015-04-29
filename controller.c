@@ -1,81 +1,91 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "controller.h"
 
 
-#define MAX_ANGLE 12.0
-#define MAX_POSITION 2.4
-
-#define NUM_ANGLES 1
-#define NUM_POSITIONS 1
-#define NUM_ACTIONS 2
-
+#define MAX_T 12.0
+#define MAX_X 2.4
+#define MAX_TD 180
+#define MAX_XD 2
 
 #define EPSILON .01
 #define GAMMA .2
 #define ALPHA .4
 
-#define NUM_STATES (NUM_ANGLES * NUM_POSITIONS * NUM_ACTIONS)
+#define NUM_T 5
+#define NUM_X 5
+#define NUM_TD 5
+#define NUM_XD 5
+#define NUM_ACTIONS 2
+
 
 #define PI 3.14159265359
 
 
-float q_values[(int)(NUM_ANGLES*MAX_ANGLE*2)][(int)(NUM_POSITIONS*MAX_POSITION*2)][NUM_ACTIONS] = {{{0.0}}};
+float q_values[NUM_T][NUM_X][NUM_TD][NUM_XD][NUM_ACTIONS];
 
-float max_w=0, max_v=0;
-float angle_div = 1.0/NUM_ANGLES;
-float pos_div = 1.0/NUM_POSITIONS;
+const int num_t = NUM_T,
+	   	num_x = NUM_X,
+		num_td = NUM_TD,
+		num_xd = NUM_XD,
+		num_actions = NUM_ACTIONS;
 
-int epsilon = EPSILON * 100;
-float gamma = GAMMA;
-float alpha = ALPHA;
 
-int prev_action, prev_x, prev_theta;
+const int mepsilon = EPSILON * 100;
+const float mgamma = GAMMA;
+const float malpha = ALPHA;
+float *current_state_value;
+float *prev_state_value;
 
-int init = 1;
+int get_index(float x, float max, int num)
+{
+	int index;
+	x = x *(num/2)/max;
+
+	index = (int)x + (num/2);
+
+	
+	if (index >= num)
+	{
+	//	printf("index %d is out of range, truncating to %d\n", index, num-1);
+		index = num-1;
+	}
+	if(index < 0)
+	{
+	//	printf("index %d is out of range, truncating to %d\n", index, 0);
+		index = 0;
+	}
+
+	return index; 
+}
 
 int get_action(float x, float x_dot, float theta, float theta_dot, float reinforcement)
 {
 	int i;
 	float max_value;
 	int max_action;
-	int x_index, theta_index;
-	//int x_dot_index, theta_dot_index;
-	int current_value;
+	float current_value;
+	int ix, ixd, it, itd;
 
+	//convert radians to degrees
 	theta = theta * 180.0/PI;
 	theta_dot = theta_dot * 180.0/PI;
 
-	if(fabs(theta_dot) > max_w)
-		max_w = fabs(theta_dot); 
-	if(fabs(x_dot) > max_v)
-		max_v = fabs(x_dot); 
-
-	x_index = (int) (((x+MAX_POSITION/2)/pos_div)+0.5);
-	theta_index = (int) (((theta+MAX_ANGLE/2)/angle_div)+0.5);
-
-
-	if(reinforcement != 0)
-	{
-	//	fprintf(stderr, "state, x: %lf theta %lf\n", x, theta);
-	//	fprintf(stderr, "indexes, x: %d theta %d\n\n", x_index, theta_index);
-	//	getchar();
-	}
-
+	ix = get_index(x, MAX_X, num_x);
+	ixd = get_index(x_dot, MAX_XD, num_xd);
+	it = get_index(theta, MAX_T, num_t);
+	itd = get_index(theta_dot, MAX_TD, num_td);
 	
-	if(x_index < 0 || theta_index < 0)
-	{
-		fprintf(stderr, "invalid index, x: %d theta %d\n", x_index, theta_index);
-		exit(1);
-	}
-
 	i = rand() % 100;
 
-	if (i >= epsilon)
+	if (i >= mepsilon)
 	{
-		for (i=0, max_value=0.0, max_action=0; i < NUM_ACTIONS; ++i)
+		max_value = -50.0; //large negative number, pessimistic initialzation
+		max_action = 0;
+		for (i=0; i < num_actions; ++i)
 		{
-			current_value = q_values[theta_index][x_index][i];
+			current_value = q_values[it][ix][itd][ixd][i];
 
 			if (current_value > max_value)
 			{
@@ -86,29 +96,22 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	}
 	else
 	{
-		max_action = rand() % NUM_ACTIONS;
+		max_action = rand() % num_actions;
 	}
-
-	if(init)
+	
+	current_state_value = &q_values[it][ix][itd][ixd][i];
+	
+	if(!prev_state_value)
 	{
-		init = 0;
-		prev_action = max_action;
-		prev_x = x_index;
-		prev_theta = theta_index;
+		prev_state_value = current_state_value;
 		return max_action;
 	}
 
+	*prev_state_value = *prev_state_value + malpha*(reinforcement + 
+													mgamma * (*current_state_value) - 
+													*prev_state_value);
 
-	q_values[prev_theta][prev_x][prev_action] = q_values[prev_theta][prev_x][prev_action] + 
-												alpha*(reinforcement + 
-													   gamma*q_values[theta_index][x_index][max_action] - 
-													   q_values[prev_theta][prev_x][prev_action]);
-
-	prev_theta = theta_index;
-	prev_x = x_index;
-	prev_action = max_action;
-
-
+	prev_state_value = current_state_value;
 
 	return max_action;
 }
@@ -120,7 +123,7 @@ void init_controller(void)
 
 void reset_controller(void)
 {
-	init = 1;
+	prev_state_value = 0;
 }
 
 
@@ -134,7 +137,7 @@ int read_states(char *filename)
 
 int write_states(char *filename) 
 {
-	int theta, x, action;
+	int t, x, td, xd, action;
 	char *default_filename = "log/log";
 	FILE *fh;
 
@@ -150,25 +153,20 @@ int write_states(char *filename)
 		return 1;
 	}
 
-	printf("max w: %lf\tmax v: %lf\n", max_w, max_v);	
 	printf("writing states to \'%s\'...", filename);
 
 	fflush(stdout);
 	
 	fprintf(fh, "theta: pos: action:  value:\n");
 
-	for (theta = 0; theta < (int)(NUM_ANGLES*MAX_ANGLE*2); ++theta)
-	{
-		for(x = 0; x <  (int)(NUM_POSITIONS*MAX_POSITION*2); ++x)
-		{
-			for(action=0; action < NUM_ACTIONS; ++action)
-			{
-				fprintf(fh, "%d %d %d %lf\n",
-						theta, x, action, q_values[theta][x][action]);
+	for (t = 0; t < num_t; ++t)
+		for (x = 0; x < num_x; ++x)
+			for (td = 0; td < num_td; ++td)
+				for (xd = 0; xd < num_xd; ++xd)
+					for (action = 0; action < num_actions; ++action)
+						fprintf(fh, "%d %d %d %d %d %f\n",
+								t, x, td, xd, action, q_values[t][x][td][xd][action]);
 
-			}
-		}
-	}
 
 	printf("done!\n");
 
