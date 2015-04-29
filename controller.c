@@ -9,14 +9,14 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .05
-#define GAMMA .4
+#define EPSILON .002
+#define GAMMA .2
 #define ALPHA .2
 
-#define NUM_T 1
-#define NUM_X 10
-#define NUM_TD 1
-#define NUM_XD 5
+#define NUM_T 10
+#define NUM_X 1
+#define NUM_TD 12
+#define NUM_XD 10
 #define NUM_ACTIONS 2
 
 
@@ -32,7 +32,7 @@ const int num_t = NUM_T,
 		num_actions = NUM_ACTIONS;
 
 
-const int mepsilon = EPSILON * 100;
+const int mepsilon = EPSILON * 1000;
 const float mgamma = GAMMA;
 const float malpha = ALPHA;
 float *current_state_value;
@@ -80,7 +80,7 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	
 	
 	
-	i = rand() % 100;
+	i = rand() % 1000;
 
 	if (i >= mepsilon)
 	{
@@ -109,13 +109,8 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 		prev_state_value = current_state_value;
 		return max_action;
 	}
-
-	*prev_state_value = *prev_state_value + malpha*(reinforcement + 
-													mgamma * (*current_state_value) - 
-													*prev_state_value);
-
-	prev_state_value = current_state_value;
-
+	
+	
 	//check if terminating state
 	if (reinforcement  <  -0.1)
 	{
@@ -124,6 +119,12 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 			q_values[it][ix][itd][ixd][i] = -1;
 		}
 	}
+
+	*prev_state_value = *prev_state_value + malpha*(reinforcement + 
+													mgamma * (*current_state_value) - 
+													*prev_state_value);
+
+	prev_state_value = current_state_value;
 
 	return max_action;
 }

@@ -6,7 +6,7 @@
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 0                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    1000000       /* Termination criterion */
+#define MAX_FAILURES    10000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
 
 
@@ -216,11 +216,11 @@ int fail(float x, float x_dot, float theta, float theta_dot)
 
    if ( theta < -twelve_degrees || theta > twelve_degrees)
    {	
-		//return 1;
+		return 1;
    }
    if ( x < -2.4 || x > 2.4 )
 	{
-             return 1;  /* fail == true */
+             //return 1;  /* fail == true */
 	}
    
    return 0;
