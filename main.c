@@ -6,7 +6,7 @@
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 0                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    10000000       /* Termination criterion */
+#define MAX_FAILURES    1000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
 
 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
    /*--- Iterate through the action-learn loop. ---*/
    while (steps++ < MAX_STEPS && failures < MAX_FAILURES)
    {
-      action = get_action(x, x_dot, theta, theta_dot, 1);  
+      action = get_action(x, x_dot, theta, theta_dot, 0.0);  
 	  //usleep(10000);
       
       /*--- Apply action to the simulated cart-pole ---*/
@@ -216,7 +216,7 @@ int fail(float x, float x_dot, float theta, float theta_dot)
 
    if ( theta < -twelve_degrees || theta > twelve_degrees)
    {	
-		return 1;
+		//return 1;
    }
    if ( x < -2.4 || x > 2.4 )
 	{

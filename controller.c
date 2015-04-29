@@ -9,13 +9,13 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .01
-#define GAMMA .2
+#define EPSILON .05
+#define GAMMA .4
 #define ALPHA .2
 
-#define NUM_T 10
-#define NUM_X 5
-#define NUM_TD 5
+#define NUM_T 1
+#define NUM_X 10
+#define NUM_TD 1
 #define NUM_XD 5
 #define NUM_ACTIONS 2
 
@@ -76,6 +76,9 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	ixd = get_index(x_dot, MAX_XD, num_xd);
 	it = get_index(theta, MAX_T, num_t);
 	itd = get_index(theta_dot, MAX_TD, num_td);
+
+	
+	
 	
 	i = rand() % 100;
 
@@ -112,6 +115,15 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 													*prev_state_value);
 
 	prev_state_value = current_state_value;
+
+	//check if terminating state
+	if (reinforcement  <  -0.1)
+	{
+		for (i=0; i < num_actions; ++i)
+		{
+			q_values[it][ix][itd][ixd][i] = -1;
+		}
+	}
 
 	return max_action;
 }

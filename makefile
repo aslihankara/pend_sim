@@ -1,4 +1,4 @@
-OPTIONS=-Wall -g
+OPTIONS=-Wall -g -O3
 CC=gcc
 
 all: pendulum.exe 
