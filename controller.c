@@ -11,9 +11,9 @@
 
 #define EPSILON .01
 #define GAMMA .2
-#define ALPHA .4
+#define ALPHA .2
 
-#define NUM_T 5
+#define NUM_T 10
 #define NUM_X 5
 #define NUM_TD 5
 #define NUM_XD 5

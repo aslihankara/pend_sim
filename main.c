@@ -6,7 +6,7 @@
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 0                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    30000000       /* Termination criterion */
+#define MAX_FAILURES    10000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
 
 
@@ -25,8 +25,6 @@ int ECHO_STATE = 0;                /* save state parameters to a file */
 FILE *echo_file = NULL; 
 int RND_SEED = 0;
 
-static char rcs_driver_id[] = "$Id: driver.c,v 2.0 1994/11/17 19:45:38 finton Exp $";
-
 int main(int argc, char *argv[])
 {
    float x,                         /* cart position, meters */
@@ -40,7 +38,6 @@ int main(int argc, char *argv[])
    int best_trial = 0;              /* trial number of best trial */
 
 
-   printf("Driver: %s\n", rcs_driver_id);
    if (TILTED)
       printf("Pole will have tilted reset,");
    else
@@ -70,7 +67,7 @@ int main(int argc, char *argv[])
    /*--- Iterate through the action-learn loop. ---*/
    while (steps++ < MAX_STEPS && failures < MAX_FAILURES)
    {
-      action = get_action(x, x_dot, theta, theta_dot, 0.0);  
+      action = get_action(x, x_dot, theta, theta_dot, 1);  
 	  //usleep(10000);
       
       /*--- Apply action to the simulated cart-pole ---*/
