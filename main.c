@@ -12,6 +12,7 @@
 
 
 //function declarations
+void write_scores(void);
 void reset_state(float *x, float *x_dot, float *theta, float *theta_dot);
 void cart_pole(int action, float *x, float *x_dot, float *theta, float *theta_dot);
 int fail(float x, float x_dot, float theta, float theta_dot);
@@ -21,6 +22,8 @@ extern void reset_controller(void);
 
 
 
+
+int scores[MAX_FAILURES]={0};
 int ECHO_STATE = 0;                /* save state parameters to a file */
 FILE *echo_file = NULL; 
 int RND_SEED = 0;
@@ -75,6 +78,7 @@ int main(int argc, char *argv[])
 
       if (fail(x, x_dot, theta, theta_dot))
       {
+		scores[failures] = steps;
 	  	failures++;
 		if(failures % 100000 == 0)
 		{	
@@ -82,6 +86,7 @@ int main(int argc, char *argv[])
 		}
         if (steps > best_steps)
         {
+			printf("new best: Trial %d was %d steps.\n", failures, steps);
 			best_steps = steps;
             best_trial = failures;
         }
@@ -94,6 +99,7 @@ int main(int argc, char *argv[])
 	    steps = 0;
       }
    }
+   scores[failures] = steps;
 
    /* Diagnose result */
    if (failures == MAX_FAILURES) 
@@ -107,6 +113,7 @@ int main(int argc, char *argv[])
             steps - 1, failures + 1);
 
    write_states(0);
+   write_scores();
 
 /* print_controller_info();*/
    if (echo_file != NULL)
@@ -116,7 +123,20 @@ int main(int argc, char *argv[])
 
 
 /*--------------------------------------------------------------------*/
+void write_scores(void)
+{
+	FILE *f = fopen("scores.log", "w");
+	int i;
 
+	printf("writing scores to 'scores.log'...");
+	fflush(stdout);
+	for (i=0; i < MAX_FAILURES && scores[i] != 0; ++i)
+		fprintf(f, "%d %d\n", i, scores[i]);
+
+	printf("done\n");
+	fclose(f);
+	return;
+}
 void reset_state(float *x, float *x_dot, float *theta, float *theta_dot)
 {
 #define SIX_DEGREES     0.1047198

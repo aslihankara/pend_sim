@@ -77,9 +77,6 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	it = get_index(theta, MAX_T, num_t);
 	itd = get_index(theta_dot, MAX_TD, num_td);
 
-	
-	
-	
 	i = rand() % 1000;
 
 	if (i >= mepsilon)
