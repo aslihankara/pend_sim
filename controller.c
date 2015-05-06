@@ -9,7 +9,7 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .050
+#define EPSILON .005
 #define GAMMA .2
 #define ALPHA .2
 

@@ -6,7 +6,7 @@
 #include "controller.h"
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
-#define TILTED 0                   /* If set, pole is given an initial tilt */
+#define TILTED 1                   /* If set, pole is given an initial tilt */
 #define MAX_FAILURES    500000000       /* Termination criterion */
 //#define MAX_FAILURES    500       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
