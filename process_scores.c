@@ -1,47 +1,69 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 
 typedef struct SCORE_STRUCT{
 	int score;
 }Score_struct;
 
-#define AVG_COUNT 100
-int read_scores(char *filename)
+#define DEFAULT_AVERAGE 1000
+
+int main (int argc, char* argv[])
 {
-	int cvalues[AVG_COUNT];
+	int *cvalues;
+	int AVG_COUNT = DEFAULT_AVERAGE;
 	float caverage;
 	int i,j;
 	FILE *df;
- 	char *default_filename = "log/a.score";  
+ 	char *infilename = "log/a.score";  
+ 	char *outfilename = "log/average.score";  
 	char linebuf[64];
 	FILE *outfile = fopen("log/average.score", "w");
-	char exit, tally;
+	char done, tally;
 	int iaverage;
 
-	if(filename == 0)
-		filename = default_filename;
+	switch(argc) //handle cmd line parameters
+	{
+		case 1:
+			//don't modify any defaults
+			break;
+		case 4: //modify the outfile
+			outfilename = argv[3];
+		case 3: //modify the infile
+			infilename = argv[2];
+		case 2: //modify the average
+			AVG_COUNT = atoi(argv[1]);	
+			break;
+		default:
+			printf("invalid number of input parameters\n");
+			exit(1);
+	}
 
-	df = fopen(filename, "r");
+	df = fopen(infilename, "r");
+	outfile = fopen(outfilename, "w");
 
 	if(df == 0)
 	{
-		printf("could not open \'%s\'", filename);
+		printf("could not open \'%s\'", infilename);
 		return 1;
 	}
 
-	printf("processing scores from \'%s\'...", filename);
+	cvalues = malloc(AVG_COUNT*sizeof(int));
+
+	printf("processing scores from \'%s\'...", infilename);
 	fflush(stdout);
 	caverage = 0;
 	i = 0;
 	j = 0;
-	exit = 0;
-	while (!exit)
+	done = 0;
+	while (!done)
 	{
 		tally = 0;
 		if(!fgets(linebuf, sizeof(linebuf), df))
 		{
 			--i;
-			exit = 1;
+			done = 1;
 			tally = 1;
 		}
 		else
@@ -65,15 +87,8 @@ int read_scores(char *filename)
 		}
 	}
 	printf("done\n");
+	free(cvalues);
 	fclose(df);
 	fclose(outfile);
-	return;
-}
-
-
-int main (void)
-{
-	read_scores(0);
-
 	return 0;
 }
