@@ -9,7 +9,7 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .002
+#define EPSILON .050
 #define GAMMA .2
 #define ALPHA .2
 
@@ -22,6 +22,10 @@
 
 #define PI 3.14159265359
 
+typedef struct QVALS {
+	int t, td, x, xd, a;
+	float value;
+}Qvalues;
 
 float q_values[NUM_T][NUM_X][NUM_TD][NUM_XD][NUM_ACTIONS];
 
@@ -128,7 +132,7 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 
 void init_controller(void)
 {
-	
+	read_states(0);
 }
 
 void reset_controller(void)
@@ -139,8 +143,40 @@ void reset_controller(void)
 
 int read_states(char *filename) 
 {
+	char *default_filename = "log/a.values";
+	FILE *fh;
+	Qvalues cq;
+	long int i;
+
+	if(filename == 0)
+	{
+		filename = default_filename;
+	}
+
+	fh = fopen(filename, "r");
+	if(fh == 0)
+	{
+		printf("could not open\'%s\' for reading!\n", filename);
+		return 1;
+	}
+
+	printf("reading states from \'%s\'...", filename);
+	fflush(stdout);
+
+	i = 0;	
+	while(1)
+	{
+		if(!fread(&cq, sizeof(cq), 1, fh))
+			break;
+		++i;
+
+		q_values[cq.t][cq.x][cq.td][cq.xd][cq.a] =	cq.value;
+	}
 
 
+	printf("done!\n%ld states read\n", i);
+
+	fclose(fh);
 
 	return 0;
 }
@@ -148,8 +184,10 @@ int read_states(char *filename)
 int write_states(char *filename) 
 {
 	int t, x, td, xd, action;
-	char *default_filename = "log/log";
+	char *default_filename = "log/a.values";
 	FILE *fh;
+	Qvalues cq;
+	long int i;
 
 	if(filename == 0)
 	{
@@ -157,28 +195,35 @@ int write_states(char *filename)
 	}
 
 	fh = fopen(filename, "w");
-	if(fh < 0)
+	if(fh == 0)
 	{
 		printf("could not open\'%s\' for writing!\n", filename);
 		return 1;
 	}
 
 	printf("writing states to \'%s\'...", filename);
-
 	fflush(stdout);
-	
-	fprintf(fh, "theta: pos: action:  value:\n");
 
+	i = 0;	
 	for (t = 0; t < num_t; ++t)
 		for (x = 0; x < num_x; ++x)
 			for (td = 0; td < num_td; ++td)
 				for (xd = 0; xd < num_xd; ++xd)
 					for (action = 0; action < num_actions; ++action)
-						fprintf(fh, "%d %d %d %d %d %f\n",
-								t, x, td, xd, action, q_values[t][x][td][xd][action]);
+					{
+						cq.t = t;
+						cq.x = x;
+						cq.td = td;
+						cq.xd = xd;
+						cq.a = action;
+						cq.value = q_values[t][x][td][xd][action];
+
+						fwrite(&cq, sizeof(cq), 1, fh);
+						++i;
+					}
 
 
-	printf("done!\n");
+	printf("done!\n%ld states written\n", i);
 
 	fclose(fh);
 

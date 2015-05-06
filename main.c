@@ -1,23 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <signal.h>
 
 #include "controller.h"
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 0                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    10000000       /* Termination criterion */
+#define MAX_FAILURES    500000000       /* Termination criterion */
+//#define MAX_FAILURES    500       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
 
 
 
 //function declarations
-void write_scores(void);
+void write_scores(char *filename);
 void reset_state(float *x, float *x_dot, float *theta, float *theta_dot);
 void cart_pole(int action, float *x, float *x_dot, float *theta, float *theta_dot);
 int fail(float x, float x_dot, float theta, float theta_dot);
 extern int get_action(float x, float x_dot, float theta, float theta_dot, float reinforcement);
 extern void reset_controller(void);
+void sig_handler(int signum);
 /* extern void print_controller_info(); */
 
 
@@ -40,6 +43,8 @@ int main(int argc, char *argv[])
    int best_steps = 0;              /* number of steps in best trial */
    int best_trial = 0;              /* trial number of best trial */
 
+
+   signal(SIGINT, sig_handler);
 
    if (TILTED)
       printf("Pole will have tilted reset,");
@@ -64,7 +69,6 @@ int main(int argc, char *argv[])
 
    init_controller();
    reset_controller();
-   read_states(0);
    reset_state(&x, &x_dot, &theta, &theta_dot);
 
    /*--- Iterate through the action-learn loop. ---*/
@@ -113,7 +117,7 @@ int main(int argc, char *argv[])
             steps - 1, failures + 1);
 
    write_states(0);
-   write_scores();
+   write_scores(0);
 
 /* print_controller_info();*/
    if (echo_file != NULL)
@@ -123,17 +127,34 @@ int main(int argc, char *argv[])
 
 
 /*--------------------------------------------------------------------*/
-void write_scores(void)
+typedef struct SCORE_STRUCT{
+	int score;
+}Score_struct;
+
+void write_scores(char *filename)
 {
-	FILE *f = fopen("scores.log", "w");
+	FILE *f;
 	int i;
+	char *default_filename = "log/a.score";
+	long int n;
 
-	printf("writing scores to 'scores.log'...");
+	if(filename == 0)
+	{
+		filename = default_filename;
+	}
+
+	f = fopen(filename, "a");
+
+
+	printf("writing scores to \'%s\'...", filename);
 	fflush(stdout);
+	n = 0;
 	for (i=0; i < MAX_FAILURES && scores[i] != 0; ++i)
-		fprintf(f, "%d %d\n", i, scores[i]);
-
-	printf("done\n");
+	{
+		fprintf(f, "%d\n", scores[i]);
+		++n;
+	}
+	printf("done\n%ld scores written\n", n);
 	fclose(f);
 	return;
 }
@@ -244,4 +265,14 @@ int fail(float x, float x_dot, float theta, float theta_dot)
 	}
    
    return 0;
+}
+
+void sig_handler(int signum)
+{
+	printf("caught signal %d\n", signum);
+
+	write_states(0);
+	write_scores(0);
+
+	exit(0);
 }
