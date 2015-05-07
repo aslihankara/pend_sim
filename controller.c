@@ -9,7 +9,7 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .005
+#define EPSILON .002
 #define GAMMA .2
 #define ALPHA .2
 
@@ -19,6 +19,7 @@
 #define NUM_XD 10
 #define NUM_ACTIONS 2
 
+#define INIT_VALUE -2.0
 
 #define PI 3.14159265359
 
@@ -140,6 +141,20 @@ void reset_controller(void)
 	prev_state_value = 0;
 }
 
+void init_state_values(void)
+{
+	int t, x, td, xd, action;
+
+	for (t = 0; t < num_t; ++t)
+		for (x = 0; x < num_x; ++x)
+			for (td = 0; td < num_td; ++td)
+				for (xd = 0; xd < num_xd; ++xd)
+					for (action = 0; action < num_actions; ++action)
+					{
+						q_values[t][x][td][xd][action] = INIT_VALUE;
+					}
+}
+
 
 int read_states(char *filename) 
 {
@@ -157,6 +172,10 @@ int read_states(char *filename)
 	if(fh == 0)
 	{
 		printf("could not open\'%s\' for reading!\n", filename);
+		printf("initalizing state values...");
+		fflush(stdout);
+		init_state_values();
+		printf("done!\n");
 		return 1;
 	}
 

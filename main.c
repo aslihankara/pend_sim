@@ -7,9 +7,9 @@
 
 #define JUPITER_GRAV 0             /* If set, use bigger gravity const */
 #define TILTED 1                   /* If set, pole is given an initial tilt */
-#define MAX_FAILURES    500000000       /* Termination criterion */
-//#define MAX_FAILURES    500       /* Termination criterion */
+#define MAX_TRIALS    500000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
+#define MAX_SUCCESS     100 //number of successful balances before termination
 
 
 
@@ -26,7 +26,7 @@ void sig_handler(int signum);
 
 
 
-int scores[MAX_FAILURES]={0};
+int scores[MAX_TRIALS]={0};
 int ECHO_STATE = 0;                /* save state parameters to a file */
 FILE *echo_file = NULL; 
 int RND_SEED = 0;
@@ -39,9 +39,11 @@ int main(int argc, char *argv[])
          theta_dot;                 /* pole angular velocity */
    int action;                      /* 0 for push-left, 1 for push-right */
    int steps = 0;                   /* duration of trial, in 0.02 sec steps */
-   int failures = 0;                /* number of failed trials */
+   //int failures = 0;                /* number of failed trials */
    int best_steps = 0;              /* number of steps in best trial */
    int best_trial = 0;              /* trial number of best trial */
+   int num_success = 0;
+   int num_trials = 0;
 
 
    signal(SIGINT, sig_handler);
@@ -72,8 +74,9 @@ int main(int argc, char *argv[])
    reset_state(&x, &x_dot, &theta, &theta_dot);
 
    /*--- Iterate through the action-learn loop. ---*/
-   while (steps++ < MAX_STEPS && failures < MAX_FAILURES)
+   while (num_success < MAX_SUCCESS && num_trials < MAX_TRIALS)
    {
+	  ++steps;
       action = get_action(x, x_dot, theta, theta_dot, 0.0);  
 	  //usleep(10000);
       
@@ -82,17 +85,17 @@ int main(int argc, char *argv[])
 
       if (fail(x, x_dot, theta, theta_dot))
       {
-		scores[failures] = steps;
-	  	failures++;
-		if(failures % 100000 == 0)
+		scores[num_trials] = steps;
+	  	num_trials++;
+		if(num_trials % 100000 == 0)
 		{	
-			printf("Trial %d was %d steps.\n", failures, steps);
+			printf("Trial %d was %d steps.\n", num_trials, steps);
 		}
         if (steps > best_steps)
         {
-			printf("new best: Trial %d was %d steps.\n", failures, steps);
+			printf("new best: Trial %d was %d steps.\n", num_trials, steps);
 			best_steps = steps;
-            best_trial = failures;
+            best_trial = num_trials;
         }
 
         /* Call controller with negative feedback for learning */
@@ -102,19 +105,33 @@ int main(int argc, char *argv[])
         reset_state(&x, &x_dot, &theta, &theta_dot);
 	    steps = 0;
       }
+	  if(steps > MAX_STEPS)
+	  {
+		scores[num_trials] = steps;
+	  	num_trials++;
+		num_success++;
+        
+		printf("*******pole successfuly balanced %d times\n", num_success);	
+
+        /* Call controller with negative feedback for learning */
+        get_action(x, x_dot, theta, theta_dot, 0);
+
+        reset_controller();
+        reset_state(&x, &x_dot, &theta, &theta_dot);
+	    steps = 0;
+		best_steps = 0;
+	  } 
    }
-   scores[failures] = steps;
+   scores[num_trials] = steps;
 
    /* Diagnose result */
-   if (failures == MAX_FAILURES) 
+   if (num_trials == MAX_TRIALS) 
    {
-      printf("Pole not balanced. Stopping after %d failures.\n",failures);
+      printf("Pole not balanced. Stopping after %d trials.\n",num_trials);
       printf("High water mark: %d steps in trial %d.\n\n", 
              best_steps, best_trial);
    }
-   else
-    printf("Pole balanced successfully for at least %d steps in trial %d.\n\n",
-            steps - 1, failures + 1);
+   printf("Pole balanced successfully for %d trials.\n\n", num_success);
 
    write_states(0);
    write_scores(0);
@@ -149,7 +166,7 @@ void write_scores(char *filename)
 	printf("writing scores to \'%s\'...", filename);
 	fflush(stdout);
 	n = 0;
-	for (i=0; i < MAX_FAILURES && scores[i] != 0; ++i)
+	for (i=0; i < MAX_TRIALS && scores[i] != 0; ++i)
 	{
 		fprintf(f, "%d\n", scores[i]);
 		++n;
