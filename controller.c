@@ -107,7 +107,7 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 		max_action = rand() % num_actions;
 	}
 	
-	current_state_value = &q_values[it][ix][itd][ixd][i];
+	current_state_value = &q_values[it][ix][itd][ixd][max_action];
 	
 	if(!prev_state_value)
 	{
