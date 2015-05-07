@@ -9,7 +9,8 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .10
+#define EPSILON_INIT .3
+#define LAMBDA .1
 #define GAMMA .2
 #define ALPHA .2
 
@@ -37,7 +38,7 @@ const int num_t = NUM_T,
 		num_actions = NUM_ACTIONS;
 
 
-const int mepsilon = EPSILON;
+float mepsilon;
 const float mgamma = GAMMA;
 const float malpha = ALPHA;
 float *current_state_value;
@@ -46,6 +47,7 @@ static double myrandmax;
 
 //forward declarations
 int myrand(float prob);
+void decay_epsilon(int init);
 
 
 int get_index(float x, float max, int num)
@@ -138,11 +140,27 @@ void init_controller(void)
 {
 	myrandmax = (double)RAND_MAX;
 	read_states(0);
+	decay_epsilon(1);
 }
 
 void reset_controller(void)
 {
 	prev_state_value = 0;
+	decay_epsilon(0);
+}
+
+void decay_epsilon(int init)
+{
+	static int t;
+	
+	if (init)
+	{
+		t = 0;
+	}
+
+	mepsilon = EPSILON_INIT * exp(-1*LAMBDA*t);
+	
+	++t;
 }
 
 void init_state_values(void)
