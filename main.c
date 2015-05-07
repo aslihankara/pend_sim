@@ -9,7 +9,7 @@
 #define TILTED 1                   /* If set, pole is given an initial tilt */
 #define MAX_TRIALS    500000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
-#define MAX_SUCCESS     100 //number of successful balances before termination
+#define MAX_SUCCESS     20 //number of successful balances before termination
 
 
 
@@ -175,40 +175,36 @@ void write_scores(char *filename)
 	fclose(f);
 	return;
 }
+
+double rand_range(int min, int max)
+{
+	float value;
+
+	value = (double) rand() / (double) RAND_MAX;
+
+	return min + (value * (max-min));
+
+}
 void reset_state(float *x, float *x_dot, float *theta, float *theta_dot)
 {
 #define SIX_DEGREES     0.1047198
 #define SEVEN_DEGREES   0.1221730
 #define TEN_DEGREES     0.1745329
 
-   float plus_or_minus(float val);
+   float angle_degrees;
 
    *x = 0.0;
    *x_dot = 0.0;
    *theta_dot = 0.0;
    if (TILTED)
-      *theta = plus_or_minus(SIX_DEGREES);
+   {
+	 angle_degrees = rand_range(-6, 6);
+     *theta = angle_degrees * PI/180; 
+   }
    else
       *theta = 0.0;
+
 }
-
-
-/*---------------------------------------------------------------------+
-| plus_or_minus: takes a value and randomly returns either that value  |
-|     or its negation                                                  |
-+---------------------------------------------------------------------*/
-
-float plus_or_minus(float val)
-{
-   long random(void);            /* system random number generator */
-
-/* if RAND_MAX is undefined, try (random() / (float) ((1 << 31) - 1)) */
-   if ((random() / (float)RAND_MAX)  >  0.5)
-      return val;
-   else
-      return -val;
-}
-
 
  
 /*----------------------------------------------------------------------

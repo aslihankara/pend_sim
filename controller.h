@@ -1,6 +1,9 @@
 #ifndef __CONTROLLER_H__
 #define __CONTROLLER_H__
 
+
+#define PI 3.14159265359
+
 int get_action(float x, float x_dot, 
                float theta, float theta_dot, float reinforcement);  
 

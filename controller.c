@@ -22,7 +22,6 @@
 
 #define INIT_VALUE 0.0
 
-#define PI 3.14159265359
 
 typedef struct QVALS {
 	int t, td, x, xd, a;
