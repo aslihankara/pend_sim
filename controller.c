@@ -9,7 +9,7 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON .002
+#define EPSILON .10
 #define GAMMA .2
 #define ALPHA .2
 
@@ -19,7 +19,7 @@
 #define NUM_XD 10
 #define NUM_ACTIONS 2
 
-#define INIT_VALUE -2.0
+#define INIT_VALUE 0.0
 
 #define PI 3.14159265359
 
@@ -37,11 +37,16 @@ const int num_t = NUM_T,
 		num_actions = NUM_ACTIONS;
 
 
-const int mepsilon = EPSILON * 1000;
+const int mepsilon = EPSILON;
 const float mgamma = GAMMA;
 const float malpha = ALPHA;
 float *current_state_value;
 float *prev_state_value;
+static double myrandmax;
+
+//forward declarations
+int myrand(float prob);
+
 
 int get_index(float x, float max, int num)
 {
@@ -82,9 +87,7 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	it = get_index(theta, MAX_T, num_t);
 	itd = get_index(theta_dot, MAX_TD, num_td);
 
-	i = rand() % 1000;
-
-	if (i >= mepsilon)
+	if (!myrand(mepsilon))
 	{
 		max_value = -50.0; //large negative number, pessimistic initialzation
 		max_action = 0;
@@ -133,6 +136,7 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 
 void init_controller(void)
 {
+	myrandmax = (double)RAND_MAX;
 	read_states(0);
 }
 
@@ -248,3 +252,16 @@ int write_states(char *filename)
 
 	return 0;
 }
+
+int myrand(float prob)
+{
+	double value;
+	
+	value = (double) rand() / myrandmax;
+
+	if(value > prob)
+		return 0;
+
+	return 1;
+}
+
