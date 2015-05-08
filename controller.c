@@ -11,13 +11,14 @@
 
 #define EPSILON_INIT .5
 #define LAMBDA .01
-#define GAMMA .2
-#define ALPHA .4
+#define GAMMA .4
+#define ALPHA .03
+#define ETA ALPHA
 
 #define NUM_T 10
 #define NUM_X 1
-#define NUM_TD 12
-#define NUM_XD 10
+#define NUM_TD 10
+#define NUM_XD 1
 #define NUM_ACTIONS 2
 
 #define INIT_VALUE 0.0
@@ -27,6 +28,10 @@ typedef struct QVALS {
 	int t, td, x, xd, a;
 	float value;
 }Qvalues;
+
+typedef struct STATE {
+	int t, td, x, xd, a;
+}State;
 
 float q_values[NUM_T][NUM_X][NUM_TD][NUM_XD][NUM_ACTIONS];
 
@@ -40,13 +45,19 @@ const int num_t = NUM_T,
 float mepsilon;
 const float mgamma = GAMMA;
 const float malpha = ALPHA;
-float *current_state_value;
-float *prev_state_value;
+const float eta = ETA;
+State current_state;
+State prev_state;
 static double myrandmax;
+char init;
+
+double weights[6];
 
 //forward declarations
 int myrand(float prob);
 void decay_epsilon(int init);
+double calc_q(State s);
+void update_q(float reward);
 
 
 int get_index(float x, float max, int num)
@@ -78,6 +89,7 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	int max_action;
 	float current_value;
 	int ix, ixd, it, itd;
+	State s;
 
 	//convert radians to degrees
 	theta = theta * 180.0/PI;
@@ -88,13 +100,21 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	it = get_index(theta, MAX_T, num_t);
 	itd = get_index(theta_dot, MAX_TD, num_td);
 
+	
+	s.x = ix;
+	s.t = it;
+	s.xd = ixd;
+	s.td = itd;
 	if (!myrand(mepsilon))
 	{
 		max_value = -50.0; //large negative number, pessimistic initialzation
 		max_action = 0;
+		
+
 		for (i=0; i < num_actions; ++i)
 		{
-			current_value = q_values[it][ix][itd][ixd][i];
+			s.a = i;
+			current_value = calc_q(s);
 
 			if (current_value > max_value)
 			{
@@ -107,44 +127,90 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	{
 		max_action = rand() % num_actions;
 	}
+	s.a = max_action;
+		
+	current_state = s;
 	
-	current_state_value = &q_values[it][ix][itd][ixd][max_action];
-	
-	if(!prev_state_value)
+	if(init)
 	{
-		prev_state_value = current_state_value;
+		init = 0;
+		prev_state= current_state;
 		return max_action;
 	}
-	
-	
+		
 	//check if terminating state
-	if (reinforcement  <  -0.1)
-	{
-		for (i=0; i < num_actions; ++i)
-		{
-			q_values[it][ix][itd][ixd][i] = -1;
-		}
-	}
+//	if (reinforcement  <  -0.1)
+//	{
+//		for (i=0; i < num_actions; ++i)
+//		{
+//			q_values[it][ix][itd][ixd][i] = -1;
+//		}
+//	}
 
-	*prev_state_value = *prev_state_value + malpha*(reinforcement + 
-													mgamma * (*current_state_value) - 
-													*prev_state_value);
+	update_q(reinforcement);
 
-	prev_state_value = current_state_value;
+	prev_state = current_state;
 
 	return max_action;
 }
 
+double calc_q(State s)
+{
+	double value;
+
+	value = weights[0] + 
+			s.t*weights[1] +
+			s.x*weights[2] +
+			s.td*weights[3] +
+			s.xd*weights[4] +
+			s.a*weights[5];
+
+	return value;
+}
+
+void update_q(float reward)
+{
+	double delta;
+	double current_value, prev_value;
+	int i;
+
+	current_value = calc_q(current_state);
+	prev_value = calc_q(prev_state);	
+
+	delta = reward + mgamma*current_value - prev_value;
+
+	weights[0] = weights[0] + eta*delta * 1;
+	weights[1] = weights[1] + eta*delta * prev_state.t;
+	weights[2] = weights[2] + eta*delta * prev_state.x;
+	weights[3] = weights[3] + eta*delta * prev_state.td;
+	weights[4] = weights[4] + eta*delta * prev_state.xd;
+	weights[5] = weights[5] + eta*delta * prev_state.a;
+
+//	printf("weights:\n");
+//	for (i=0; i < 6; ++i)
+//	{
+//		printf("w[%d]: %lf\n", i, weights[i]);
+//	}
+//	putchar('\n');
+//	getchar();
+}
+
+
 void init_controller(void)
 {
+	int i;
 	myrandmax = (double)RAND_MAX;
 	read_states(0);
 	decay_epsilon(1);
+
+	for (i=0; i < 6; ++i)
+		weights[i] = 0.0;
 }
 
 void reset_controller(void)
 {
-	prev_state_value = 0;
+	init = 1;
+
 	decay_epsilon(0);
 }
 
@@ -179,55 +245,55 @@ void init_state_values(void)
 
 int read_states(char *filename) 
 {
-	char *default_filename = "log/a.values";
-	FILE *fh;
-	Qvalues cq;
-	long int i;
-
-	if(filename == 0)
-	{
-		filename = default_filename;
-	}
-
-	fh = fopen(filename, "r");
-	if(fh == 0)
-	{
-		printf("could not open\'%s\' for reading!\n", filename);
-		printf("initalizing state values...");
-		fflush(stdout);
-		init_state_values();
-		printf("done!\n");
-		return 1;
-	}
-
-	printf("reading states from \'%s\'...", filename);
-	fflush(stdout);
-
-	i = 0;	
-	while(1)
-	{
-		if(!fread(&cq, sizeof(cq), 1, fh))
-			break;
-		++i;
-
-		q_values[cq.t][cq.x][cq.td][cq.xd][cq.a] =	cq.value;
-	}
-
-
-	printf("done!\n%ld states read\n", i);
-
-	fclose(fh);
+//	char *default_filename = "log/a.values";
+//	FILE *fh;
+//	Qvalues cq;
+//	long int i;
 
 	return 0;
+
+//	if(filename == 0)
+//	{
+//		filename = default_filename;
+//	}
+//
+//	fh = fopen(filename, "r");
+//	if(fh == 0)
+//	{
+//		printf("could not open\'%s\' for reading!\n", filename);
+//		printf("initalizing state values...");
+//		fflush(stdout);
+//		init_state_values();
+//		printf("done!\n");
+//		return 1;
+//	}
+//
+//	printf("reading states from \'%s\'...", filename);
+//	fflush(stdout);
+//
+//	i = 0;	
+//	while(1)
+//	{
+//		if(!fread(&cq, sizeof(cq), 1, fh))
+//			break;
+//		++i;
+//
+//		q_values[cq.t][cq.x][cq.td][cq.xd][cq.a] =	cq.value;
+//	}
+//
+//
+//	printf("done!\n%ld states read\n", i);
+//
+//	fclose(fh);
+//
+//	return 0;
 }
 
 int write_states(char *filename) 
 {
-	int t, x, td, xd, action;
 	char *default_filename = "log/a.values";
 	FILE *fh;
-	Qvalues cq;
-	long int i;
+	int i;
 
 	if(filename == 0)
 	{
@@ -244,26 +310,16 @@ int write_states(char *filename)
 	printf("writing states to \'%s\'...", filename);
 	fflush(stdout);
 
-	i = 0;	
-	for (t = 0; t < num_t; ++t)
-		for (x = 0; x < num_x; ++x)
-			for (td = 0; td < num_td; ++td)
-				for (xd = 0; xd < num_xd; ++xd)
-					for (action = 0; action < num_actions; ++action)
-					{
-						cq.t = t;
-						cq.x = x;
-						cq.td = td;
-						cq.xd = xd;
-						cq.a = action;
-						cq.value = q_values[t][x][td][xd][action];
-
-						fwrite(&cq, sizeof(cq), 1, fh);
-						++i;
-					}
+	fwrite(weights, sizeof(double), 6, fh);
 
 
-	printf("done!\n%ld states written\n", i);
+	printf("done!\n");
+
+	printf("weights:\n");
+	for (i=0; i < 6; ++i)
+	{
+		printf("w[%d]: %lf\n", i, weights[i]);
+	}
 
 	fclose(fh);
 
