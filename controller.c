@@ -30,8 +30,13 @@ typedef struct QVALS {
 }Qvalues;
 
 typedef struct STATE {
-	int t, td, x, xd, a;
+	float t, td, x, xd;
+	int a;
 }State;
+
+typedef struct FEATURES{
+	char rr, rl, hw, fl, fr, c;
+}Features;
 
 float q_values[NUM_T][NUM_X][NUM_TD][NUM_XD][NUM_ACTIONS];
 
@@ -51,13 +56,14 @@ State prev_state;
 static double myrandmax;
 char init;
 
-double weights[6];
+double weights[8];
 
 //forward declarations
 int myrand(float prob);
 void decay_epsilon(int init);
 double calc_q(State s);
 void update_q(float reward);
+Features get_features(State s);
 
 
 int get_index(float x, float max, int num)
@@ -154,16 +160,63 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	return max_action;
 }
 
-double calc_q(State s)
+Features get_features(State s)
+{
+	Features f = {0};
+
+
+	//check for high w
+	if (fabs(s.td) > 5)
+	{
+		f.hw = 1;
+	}
+
+	//check if pole is close to center
+	if( fabs(s.t) < 1)
+	{
+		f.c = 1;
+	}
+
+	if (s.t > 0 ) //if angle is to the right
+	{
+		//check if restoring or falling
+		if (s.td > 0)
+		{
+			f.fr = 1;
+		}
+		else
+		{
+			f.rr = 1;
+		}
+		
+	}
+	else //angle is to the left
+	{
+		//check if restoring or falling
+		if (s.td < 0)
+		{
+			f.fl = 1;
+		}
+		else
+		{
+			f.rl = 1;
+		}
+	}
+
+	return f;
+}
+double calc_q(Features f)
 {
 	double value;
 
 	value = weights[0] + 
-			s.t*weights[1] +
-			s.x*weights[2] +
-			s.td*weights[3] +
-			s.xd*weights[4] +
-			s.a*weights[5];
+			s.rr*weights[1] +
+			s.rl*weights[2] +
+			s.hw*weights[3] +
+			s.fl*weights[4] +
+			s.fr*weights[5]
+			f.c*weights[6] + 
+			;
 
 	return value;
 }
