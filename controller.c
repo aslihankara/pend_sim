@@ -9,10 +9,10 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON_INIT .3
-#define LAMBDA .1
+#define EPSILON_INIT .5
+#define LAMBDA .01
 #define GAMMA .2
-#define ALPHA .2
+#define ALPHA .4
 
 #define NUM_T 10
 #define NUM_X 1

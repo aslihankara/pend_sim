@@ -9,7 +9,7 @@
 #define TILTED 1                   /* If set, pole is given an initial tilt */
 #define MAX_TRIALS    500000000       /* Termination criterion */
 #define MAX_STEPS       100000     /* about 33 minutes of balancing */
-#define MAX_SUCCESS     20 //number of successful balances before termination
+#define MAX_SUCCESS     500  //number of successful balances before termination
 
 
 
@@ -274,7 +274,7 @@ int fail(float x, float x_dot, float theta, float theta_dot)
    }
    if ( x < -2.4 || x > 2.4 )
 	{
-             //return 1;  /* fail == true */
+	//	return 1;  /* fail == true */
 	}
    
    return 0;
