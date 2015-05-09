@@ -34,6 +34,12 @@ typedef struct STATE {
 	double t, td;
 }State;
 
+typedef struct TDATA {
+	State current, next;
+	int a;
+}Tdata;
+
+
 float q_values[NUM_T][NUM_X][NUM_TD][NUM_XD][NUM_ACTIONS];
 
 const int num_t = NUM_T,
@@ -54,6 +60,9 @@ int init;
 
 double tweights[NUM_INPUTS]; 
 double tdweights[NUM_INPUTS];
+
+Tdata training_data[200000];
+int valid_trials = 0;
 
 //forward declarations
 int myrand(float prob);
@@ -131,9 +140,14 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 		prev_action = best_action; 
 		return best_action; 
 	}
+
+	training_data[valid_trials].current = prev_state;
+	training_data[valid_trials].next = current_state;
+	training_data[valid_trials].a = prev_action;
+	++valid_trials;
 	
 		
-	update_weights(prev_state, prev_action, current_state);
+	//update_weights(prev_state, prev_action, current_state);
 	/*
 	for(i=0; i < NUM_INPUTS; ++i)
 	{
@@ -161,7 +175,11 @@ double get_qvalue(State cstate, int action)
 	State nstate;
 
 	nstate = calc_nstate(cstate, action);
-
+/*
+	nstate.t *= 1.0/12;
+	nstate.t *= nstate.t;
+	nstate.td *= 1.0/180;
+*/
 	return sqrt(nstate.t*nstate.t + nstate.td*nstate.td);	
 }
 
@@ -176,7 +194,6 @@ State calc_nstate(State cstate, int action)
 	{
 		action = -1;
 	}
-
 
 	input[0] = 1; //bias
 	input[1] = cstate.t;
@@ -260,9 +277,21 @@ void init_controller(void)
 
 void reset_controller(void)
 {
+	int i,j;
 	prev_state_value = 0;
 	init = 1;
 	decay_epsilon(0);
+
+if(valid_trials)
+{
+	for(j=0; j < 100; ++j)
+	for(i=0; i < valid_trials; ++i)
+	{
+		update_weights(training_data[i].current, training_data[i].a, training_data[i].next);
+	}
+}
+valid_trials = 0;
+
 }
 
 void decay_epsilon(int init)
