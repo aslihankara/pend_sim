@@ -9,10 +9,13 @@
 #define MAX_TD 180
 #define MAX_XD 2
 
-#define EPSILON_INIT .5
+#define EPSILON_INIT .3
 #define LAMBDA .1
 #define GAMMA .001
 #define ALPHA .4
+
+#define GAMMAT GAMMA
+#define GAMMATD GAMMA/150
 
 #define NUM_T 10
 #define NUM_X 1
@@ -56,6 +59,7 @@ float *current_state_value;
 float *prev_state_value;
 static double myrandmax;
 int init;
+char learning = 1;
 
 
 double tweights[NUM_INPUTS]; 
@@ -71,6 +75,7 @@ State calc_nstate(State cstate, int action);
 double sigmoid(double x);
 void update_weights(State prev, int action, State actual);
 double get_qvalue(State cstate, int action);
+void show_error(State prev, int action, State actual);
 
 
 
@@ -146,8 +151,11 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 	training_data[valid_trials].a = prev_action;
 	++valid_trials;
 	
+	//show_error( prev_state, prev_action, current_state);
+	
 		
 	//update_weights(prev_state, prev_action, current_state);
+
 	/*
 	for(i=0; i < NUM_INPUTS; ++i)
 	{
@@ -173,14 +181,17 @@ int get_action(float x, float x_dot, float theta, float theta_dot, float reinfor
 double get_qvalue(State cstate, int action)
 {
 	State nstate;
+	//double tmp;
 
 	nstate = calc_nstate(cstate, action);
-/*
-	nstate.t *= 1.0/12;
-	nstate.t *= nstate.t;
-	nstate.td *= 1.0/180;
-*/
-	return sqrt(nstate.t*nstate.t + nstate.td*nstate.td);	
+
+	nstate.t *= 1.0/MAX_T;
+	//nstate.t *= nstate.t;
+	nstate.td *= 1.0/MAX_TD;
+
+	//tmp = nstate.td * fabs(nstate.td)/ nstate.t;
+
+	return sqrt(nstate.t*nstate.t + nstate.td*nstate.td*0.01);	
 }
 
 State calc_nstate(State cstate, int action)
@@ -217,14 +228,39 @@ State calc_nstate(State cstate, int action)
 	return next_state;
 }
 
-void myweightupdate(double error, double weights[NUM_INPUTS], double inputs[NUM_INPUTS])
+void myweightupdate(double error, double weights[NUM_INPUTS], double inputs[NUM_INPUTS], double mygamma)
 {
 	int i;
 
 	for (i=0; i < NUM_INPUTS; ++i)
 	{
-		weights[i] = weights[i] + mgamma*error*inputs[i];
+		weights[i] = weights[i] + mygamma*error*inputs[i];
 	}
+}
+
+void show_error(State prev, int action, State actual)
+{
+	double error;
+	State expected;
+	double inputs[NUM_INPUTS];
+
+	if(!action)
+	{
+		action = -1;
+	}
+
+	inputs[0] = 1;
+	inputs[1] = prev.t;
+	inputs[2] = prev.td;
+	inputs[3] = action;
+
+	expected = calc_nstate(prev, action);
+
+	error = actual.t - expected.t;
+	printf("t error: %lf ", error);
+
+	error = actual.td - expected.td;
+	printf("td error: %lf\n", error);
 }
 
 void update_weights(State prev, int action, State actual)
@@ -246,10 +282,10 @@ void update_weights(State prev, int action, State actual)
 	expected = calc_nstate(prev, action);
 
 	error = actual.t - expected.t;
-	myweightupdate(error, tweights, inputs);
+	myweightupdate(error, tweights, inputs, GAMMAT);
 
 	error = actual.td - expected.td;
-	myweightupdate(error, tdweights, inputs);
+	myweightupdate(error, tdweights, inputs, GAMMATD);
 }
 
 
@@ -275,6 +311,32 @@ void init_controller(void)
 
 }
 
+void disable_learning()
+{
+	learning = 0;
+}
+
+void save_run(void)
+{
+	FILE* ft = fopen("log/a.t", "w");
+	FILE* ftd = fopen("log/a.td", "w");
+	FILE* fa = fopen("log/a.a", "w");
+	int i;
+
+	printf("saving run info...");
+	fflush(stdout);
+	for (i=0; i < valid_trials; ++i)
+	{
+		fprintf(ft, "%d %lf\n", i, training_data[i].current.t );
+		fprintf(ftd, "%d %lf\n", i, training_data[i].current.td);
+		fprintf(ftd, "%d %d\n", i, training_data[i].a*2 - 1);
+	}
+	fclose(ft);
+	fclose(ftd);
+	fclose(fa);
+	printf("done\n");
+}
+
 void reset_controller(void)
 {
 	int i,j;
@@ -282,13 +344,15 @@ void reset_controller(void)
 	init = 1;
 	decay_epsilon(0);
 
-if(valid_trials)
+if(valid_trials && learning)
 {
 	for(j=0; j < 100; ++j)
 	for(i=0; i < valid_trials; ++i)
 	{
 		update_weights(training_data[i].current, training_data[i].a, training_data[i].next);
 	}
+
+	save_run();
 }
 valid_trials = 0;
 

@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
       }
 	  if(steps > MAX_STEPS)
 	  {
+		disable_learning();
 		scores[num_trials] = steps;
 	  	num_trials++;
 		num_success++;

@@ -11,5 +11,6 @@ void reset_controller(void);
 void init_controller(void);
 int read_states(char* filename);
 int write_states(char *filename);
+void disable_learning();
 
 #endif
